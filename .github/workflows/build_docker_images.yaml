@@ -40,7 +40,20 @@ jobs:
                     password: ${{ secrets.ACCESS_TOKEN }}
 
             -
-                name: Build images
+                name: Build and push images
                 run: |
-                    docker build . --tag ghcr.io/${{ github.repository_owner }}/monorepo-split:latest --build-arg commitHash=${{ github.sha }}
-                    docker push ghcr.io/${{ github.repository_owner }}/monorepo-split:latest
+                    IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/monorepo-split"
+                    
+                    # Build image
+                    docker build . --tag ${IMAGE_NAME}:latest --build-arg commitHash=${{ github.sha }}
+                    
+                    # If triggered by a tag, also tag the image with the version
+                    if [[ "${{ github.ref_type }}" == "tag" ]]; then
+                      docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:${{ github.ref_name }}
+                      docker push ${IMAGE_NAME}:${{ github.ref_name }}
+                      echo "✅ Pushed ${IMAGE_NAME}:${{ github.ref_name }}"
+                    fi
+                    
+                    # Always push latest
+                    docker push ${IMAGE_NAME}:latest
+                    echo "✅ Pushed ${IMAGE_NAME}:latest"
